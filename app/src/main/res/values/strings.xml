@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">V3tracker</string>
+    <string name="dummy_button">Dummy Button</string>
+    <string name="dummy_content">DUMMY\nCONTENT</string>
+    <string name="strLogin">Login</string>
+    <string name="strSignInToV3Track">Sign in to V3 track</string>
+    <string name="title_activity_select_vehicle">Select Vehicle</string>
+
+    <string name="nav_pref_mode">Mode</string>
+    <string name="nav_pref_select_vehicle">Select vehicle</string>
+    <string name="nav_pref_location_update_frequency">Update Location</string>
+    <string name="nav_pref_location_update_frequency_in_sec"> Seconds : </string>
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+    <string name="action_example">Example action</string>
+    <string name="action_settings">Settings</string>
+    <string name="action_settings_mode">Mode</string>
+    <string name="action_settings_vehicle">Choose Vehicle</string>
+    <string name="action_settings_location_update_frequency">Location update</string>
+    <string name="preference_file">v3_preference_file</string>
+    <string name="key_location_update">key_location_update</string>
+    <string name="key_tracking_mode">key_tracking_mode</string>
+    <string name="key_my_vehicle">key_my_vehicle</string>
+
+</resources>
