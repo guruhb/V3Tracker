@@ -2,6 +2,8 @@ package com.vts.v3tracker;
 
 import java.io.IOException;
 import java.net.CookieStore;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -148,7 +150,13 @@ public class LoginScreen extends Activity {
         	//Log.v("LoginScreen", "uname : " + u );
 
             public void onClick(View v) {
-            	Http.HttpData resp = Http.getInstance().vtsLogin(uname.getText().toString(), passwd.getText().toString());
+                URI uri = null;
+                try {
+                    uri = new URI(getResources().getString(R.string.v3prdserver));
+                } catch (URISyntaxException e) {
+                    e.printStackTrace();
+                }
+                Http.HttpData resp = Http.getInstance().vtsLogin(uname.getText().toString(), passwd.getText().toString(), uri);
             	if(resp.status == HttpStatus.SC_OK) {
             		Log.v("LoginScree", "Login Success");
             		Intent intent = new Intent(LoginScreen.this, SelectVehicle.class);

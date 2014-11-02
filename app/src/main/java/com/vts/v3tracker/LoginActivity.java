@@ -27,6 +27,9 @@ import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
+
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 import com.vts.v3tracker.R;
@@ -46,7 +49,7 @@ public class LoginActivity extends Activity implements LoaderCallbacks<Cursor>{
      * TODO: remove after connecting to a real authentication system.
      */
     private static final String[] DUMMY_CREDENTIALS = new String[]{
-            "admin", "admin"
+            "@string/tempusername", "@string/tempuserpw"
     };
     private boolean dUsingDummyCred = false;
     /**
@@ -307,7 +310,14 @@ public class LoginActivity extends Activity implements LoaderCallbacks<Cursor>{
             // TODO: attempt authentication against a network service.
              // Simulate network access.
             //Thread.sleep(1000);
-           Http.HttpData resp = null;
+            URI uri = null;
+            try {
+                uri = new URI(getResources().getString(R.string.v3prdserver));
+            } catch (URISyntaxException e) {
+                Log.v("LoginActivity", "Getting url server from resource failed");
+                e.printStackTrace();
+            }
+            Http.HttpData resp = null;
            if(dUsingDummyCred) {
                for (String credential : DUMMY_CREDENTIALS) {
                    String[] pieces = credential.split(":");
@@ -315,23 +325,20 @@ public class LoginActivity extends Activity implements LoaderCallbacks<Cursor>{
                        // Account exists, return true if the password matches.
                        //return pieces[1].equals(mPassword);
                    }*/
-                   resp = Http.getInstance().vtsLogin(pieces[0], pieces[1]);
+                   resp = Http.getInstance().vtsLogin(pieces[0], pieces[1], uri);
                }
            } else {
-               resp = Http.getInstance().vtsLogin(mEmail, mPassword);
+               resp = Http.getInstance().vtsLogin(mEmail, mPassword, uri);
                if (resp.status == HttpStatus.SC_OK) {
-                   Log.v("LoginScree", "Login Success");
+                   Log.v("LoginActivity", "Login Success");
                    return true;
                }
            }
 
             if (resp.status == HttpStatus.SC_OK) {
-                Log.v("LoginScree", "Login Success");
+                Log.v("LoginActivity", "Login Success");
                 return true;
             }
-
-
-
             // TODO: register the new account here.
             return false;
         }

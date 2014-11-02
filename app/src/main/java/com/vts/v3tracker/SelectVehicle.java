@@ -1,4 +1,8 @@
 package com.vts.v3tracker;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -14,6 +18,7 @@ import com.vts.vtsUtils.Vehicle;
 import com.vts.vtsUtils.VehicleData;
 import com.vts.vtsUtils.VehicleListAdaptor;
 
+import android.content.res.Resources;
 import android.os.StrictMode;
 import android.support.v7.app.ActionBarActivity;
 import android.support.v7.app.ActionBar;
@@ -74,17 +79,30 @@ public class SelectVehicle extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        setUpListView();
+        try {
+            setUpListView();
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        }
     }
 
-    private void setUpListView() {
+    private void setUpListView() throws MalformedURLException {
 		customerListView = (ListView) findViewById(R.id.customerList);
 		adaptor = new VehicleListAdaptor(SelectVehicle.this, R.layout.listitem, arrayList);
 		customerListView.setAdapter(adaptor);
 
+        URL url = null;
+
+        try {
+            url = new URL(getResources().getString(R.string.v3prdserver));
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        } catch (Resources.NotFoundException e) {
+            e.printStackTrace();
+        }
 
         //allVehicleData = Http.getInstance().vtsGetAllVehicleData();
-        Http.HttpData resp =  Http.getInstance().vtsGetAllVehicleData();
+        Http.HttpData resp =  Http.getInstance().vtsGetAllVehicleData(url);
         if(resp.status == HttpStatus.SC_OK) {
             allVehicleData = resp.data;
         }

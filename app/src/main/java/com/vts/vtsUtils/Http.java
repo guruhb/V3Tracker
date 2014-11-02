@@ -3,12 +3,16 @@ package com.vts.vtsUtils;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.URI;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
 import android.support.v7.appcompat.R.bool;
 import android.util.Log;
+
+import com.vts.v3tracker.R;
 
 import org.apache.http.*;
 import org.apache.http.client.ClientProtocolException;
@@ -38,11 +42,9 @@ import static org.apache.http.HttpStatus.*;
 //4. FIXME : handle each and every network related errors
 
 public class Http {
-    //54-84-141-99 : prd
-    //54-86-213-39 : rnd
-    public static final String V3_SERVER_URL = "http://ec2-54-84-141-99.compute-1.amazonaws.com/vts/home";
-    public static final String V3_SERVER_URL_GETLIVEDATA = "http://ec2-54-84-141-99.compute-1.amazonaws.com/vts/livedata";
-    //http://ec2-54-86-213-39.compute-1.amazonaws.com/vts/livedata
+
+    public static final String V3_SERVER_URL = "";
+    public static final String V3_SERVER_URL_GETLIVEDATA = "";
 	public static final String PROXY_ADDRESS = "http://";
 	public static final boolean USE_NETWORK_PROXY = false;
 	public boolean userLogin = false;
@@ -115,15 +117,14 @@ public class Http {
         return response.data;
     }
 	
-	public HttpData vtsGetAllVehicleData() {
+	public HttpData vtsGetAllVehicleData(URL url) {
 		Log.v("Http ", "vtsGetAllVehicleData --> ");
         HttpData response = new HttpData();
-    	//GET http://ec2-54-86-213-39.compute-1.amazonaws.com/vts/livedata
 		String SetServerString = "";
 		String content = "";
 
 		try {
-    	 HttpGet httpget = new HttpGet(V3_SERVER_URL_GETLIVEDATA);
+    	 HttpGet httpget = new HttpGet(url.toString());
          /*ResponseHandler<String> responseHandler = new BasicResponseHandler();
          
          SetServerString = httpClient.execute(httpget, responseHandler);
@@ -160,7 +161,7 @@ public class Http {
 		return response;
 	}
 	
-	public HttpData vtsLogin(String username, String password) {
+	public HttpData vtsLogin(String username, String password, URI uri) {
         HttpData response = new HttpData();
         // Perform action on click
     	Log.v("Http", "loginButton Clicked");
@@ -172,8 +173,7 @@ public class Http {
     		return response;
     	}
 
-        //HttpPost httppost = new HttpPost("http://ec2-54-86-213-39.compute-1.amazonaws.com/vts/home"); rnd
-        HttpPost httppost = new HttpPost(V3_SERVER_URL);
+        HttpPost httppost = new HttpPost(uri);
 
         try {
             // Add your data
