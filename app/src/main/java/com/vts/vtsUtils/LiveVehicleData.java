@@ -46,6 +46,7 @@ public class LiveVehicleData {
 	 * 
 	 */
 	public boolean parseLiveData(String data) {
+        Log.v("LiveVehicleData", "parseLiveData");
 		/*Parse JSON allVechicleData and store it in HashMap
 		 * 
 		 */

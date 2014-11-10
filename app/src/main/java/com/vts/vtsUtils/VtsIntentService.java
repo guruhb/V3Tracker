@@ -54,13 +54,14 @@ public class VtsIntentService extends IntentService {
 		i.putExtra(SERVICE_TYPE, servicetype);
 
 		Bundle req = intent.getExtras();
+        Log.v("VtsIntentService", "onHandleIntent request type : " + servicetype);
 		if(req != null) {
 			switch(servicetype) {
 			case SERVICE_NONE :
 				Log.v("VtsIntentService", "Intent not specefied ");
-				//perform some long running task !!! 
+				//perform some long running task only for testing!!!
 				try {
-					Thread.sleep(1000);
+					Thread.sleep(100);
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -73,28 +74,28 @@ public class VtsIntentService extends IntentService {
 			case SERVICE_LOGIN : {
                     String uname = req.getString("uname");
                     String passwd = req.getString("passwd");
-                URI uri = null;
-                try {
-                    uri = new URI(getResources().getString(R.string.v3prdserver));
-                } catch (URISyntaxException e) {
-                    Log.v("LoginActivity", "Getting url server from resource failed");
-                    e.printStackTrace();
-                }
-                    Http.HttpData resp = Http.getInstance().vtsLogin(uname, passwd, uri);
-                    if (resp.status == HttpStatus.SC_OK) {
-                        i.putExtra(SERVICE_RESPONSE, true);
-                    } else {
-                        i.putExtra(SERVICE_RESPONSE, false); //FIXME : handle error case
+                    URI uri = null;
+                    try {
+                        uri = new URI(getResources().getString(R.string.v3PrdServer) + getResources().getString(R.string.v3LoginPath) );
+                    } catch (URISyntaxException e) {
+                        Log.v("LoginActivity", "Getting url server from resource failed");
+                        e.printStackTrace();
                     }
-                    sendBroadcast(i);
-                }
+                        Http.HttpData resp = Http.getInstance().vtsLogin(uname, passwd, uri);
+                        if (resp.status == HttpStatus.SC_OK) {
+                            i.putExtra(SERVICE_RESPONSE, true);
+                        } else {
+                            i.putExtra(SERVICE_RESPONSE, false); //FIXME : handle error case
+                        }
+                        sendBroadcast(i);
+                    }
 				break;
 			case SERVICE_GETLIVEDATA : 
 				{
                     URL url = null;
 
                     try {
-                        url = new URL(getResources().getString(R.string.v3prdserver));
+                        url = new URL( getResources().getString(R.string.v3PrdServer) + getResources().getString(R.string.v3LivePath) );
                     } catch (MalformedURLException e) {
                         e.printStackTrace();
                     } catch (Resources.NotFoundException e) {

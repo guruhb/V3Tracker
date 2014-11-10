@@ -94,7 +94,7 @@ public class SelectVehicle extends Activity {
         URL url = null;
 
         try {
-            url = new URL(getResources().getString(R.string.v3prdserver));
+            url = new URL( getResources().getString(R.string.v3PrdServer) + getResources().getString(R.string.v3LivePath) );
         } catch (MalformedURLException e) {
             e.printStackTrace();
         } catch (Resources.NotFoundException e) {

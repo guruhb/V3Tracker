@@ -307,12 +307,9 @@ public class LoginActivity extends Activity implements LoaderCallbacks<Cursor>{
 
         @Override
         protected Boolean doInBackground(Void... params) {
-            // TODO: attempt authentication against a network service.
-             // Simulate network access.
-            //Thread.sleep(1000);
             URI uri = null;
             try {
-                uri = new URI(getResources().getString(R.string.v3prdserver));
+                uri = new URI( getResources().getString(R.string.v3PrdServer) + getResources().getString(R.string.v3LoginPath) );
             } catch (URISyntaxException e) {
                 Log.v("LoginActivity", "Getting url server from resource failed");
                 e.printStackTrace();

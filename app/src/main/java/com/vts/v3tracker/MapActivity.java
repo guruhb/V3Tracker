@@ -36,6 +36,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.ListView;
 import android.widget.SeekBar;
 import android.widget.Toast;
@@ -163,6 +164,11 @@ public class MapActivity extends Activity
         if(mMap != null) {
             Log.v("MapActivity", "Map Fragment failed to inflate");
         }
+
+        /*Button button = new Button(this);
+        button.setText("Click me");
+        addContentView(button, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));*/
+
     }
 
 
@@ -651,7 +657,7 @@ public class MapActivity extends Activity
                 builder.include(mVehicleLocation);
                 LatLngBounds bounds = builder.build();
 
-                int padding = 60; // offset from edges of the map in pixels FIXME : make this literal instead of hard coded value
+                int padding = 100; // offset from edges of the map in pixels FIXME : make this literal instead of hard coded value
                 CameraUpdate cu = CameraUpdateFactory.newLatLngBounds(bounds, padding);
                 mMap.moveCamera(cu);
 

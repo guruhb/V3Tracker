@@ -3,6 +3,7 @@ package com.vts.vtsUtils;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.CookiePolicy;
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
@@ -11,11 +12,14 @@ import java.util.Set;
 
 import android.support.v7.appcompat.R.bool;
 import android.util.Log;
-
+import java.net.CookieHandler;
+import java.net.CookieManager;
 import com.vts.v3tracker.R;
 
 import org.apache.http.*;
 import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.CookieStore;
+import org.apache.http.client.HttpClient;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -23,6 +27,9 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.params.ClientPNames;
 import org.apache.http.client.params.HttpClientParams;
+import org.apache.http.client.protocol.ClientContext;
+import org.apache.http.cookie.Cookie;
+import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.BasicResponseHandler;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
@@ -43,23 +50,20 @@ import static org.apache.http.HttpStatus.*;
 
 public class Http {
 
-    public static final String V3_SERVER_URL = "";
-    public static final String V3_SERVER_URL_GETLIVEDATA = "";
-	public static final String PROXY_ADDRESS = "http://";
-	public static final boolean USE_NETWORK_PROXY = false;
 	public boolean userLogin = false;
+    private final String USER_AGENT = "Mozilla/5.0";
 
-	//FIXME : not needed in device 
-	final String PROXY = "172.16.39.201";
-	// proxy host
-	final HttpHost PROXY_HOST = new HttpHost(PROXY, 8080);
-    private HttpClient httpClient = null;
-	private HttpContext localContext = null;
-	
-	private static Http instance = null;
+    private HttpClient mHttpClient = null;
+	private HttpContext mHttpContext = null;
+    // Create a local mInstance of cookie store
+    private CookieStore mCookieStore = new BasicCookieStore();
+
+
+
+	private static Http mInstance = null;
 	
 	protected Http() {
-		//to avoid default instance 
+		//to avoid default mInstance 
 	}
 
 
@@ -70,20 +74,24 @@ public class Http {
 
 
 	public static Http getInstance() {
-		if(instance == null) {
+		if(mInstance == null) {
 			Log.v("Http ", "Http getInstance");
-			instance = new Http(); 
+			mInstance = new Http(); 
 
-			instance.localContext = new BasicHttpContext();
+			mInstance.mHttpContext = new BasicHttpContext();
             HttpParams httpParameters = new BasicHttpParams();
+            mInstance.mCookieStore = new BasicCookieStore();
             /*HttpConnectionParams.setConnectionTimeout(httpParameters, 20000);
             HttpConnectionParams.setSoTimeout(httpParameters, 30000);
-            instance.httpClient = new DefaultHttpClient(httpParameters);*/ //FIXME : in emulator there was always timeout
-            instance.httpClient = new DefaultHttpClient();
-           // instance.httpClient.getParams().setParameter(HttpClientParams.CONNECTION_MANAGER_TIMEOUT, new Long(5000))
-			
-		}
-		return instance;
+            mInstance.mHttpClient = new DefaultmHttpClient(httpParameters);*/ //FIXME : in emulator there was always timeout
+            mInstance.mHttpClient = new DefaultHttpClient();
+           // mInstance.mHttpClient.getParams().setParameter(mHttpClientParams.CONNECTION_MANAGER_TIMEOUT, new Long(5000))
+            mInstance.mHttpContext.setAttribute(ClientContext.COOKIE_STORE, mInstance.mCookieStore);
+            mInstance.mHttpContext.setAttribute(ClientContext.USER_TOKEN, mInstance.mCookieStore);
+            mInstance.mHttpContext.setAttribute(ClientContext.COOKIE_ORIGIN, mInstance.mCookieStore);
+           mInstance.mHttpContext.setAttribute(ClientContext.COOKIE_SPEC, mInstance.mCookieStore);
+ 		}
+		return mInstance;
 	}
 
     public String downloadUrl(String url) {
@@ -91,7 +99,7 @@ public class Http {
         HttpGet get = new HttpGet(url);
         StringBuilder builder = new StringBuilder();
         try{
-            HttpResponse httpResponse = httpClient.execute(get);
+            HttpResponse httpResponse = mHttpClient.execute(get);
             if(httpResponse.getStatusLine().getStatusCode() == SC_OK ) {
                 BufferedReader reader = new BufferedReader(new InputStreamReader(httpResponse.getEntity().getContent(), "UTF-8"));
                 response.status = SC_OK;
@@ -118,24 +126,19 @@ public class Http {
     }
 	
 	public HttpData vtsGetAllVehicleData(URL url) {
-		Log.v("Http ", "vtsGetAllVehicleData --> ");
+		Log.v("Http ", "vtsGetAllVehicleData url :  " + url.toString());
         HttpData response = new HttpData();
 		String SetServerString = "";
 		String content = "";
 
 		try {
     	 HttpGet httpget = new HttpGet(url.toString());
-         /*ResponseHandler<String> responseHandler = new BasicResponseHandler();
-         
-         SetServerString = httpClient.execute(httpget, responseHandler);
-	     content = SetServerString.toString();*/
-         //httpClient.getConnectionManager().closeExpiredConnections();
-            HttpResponse httpResponse = httpClient.execute(httpget);
+
+            HttpResponse httpResponse = mHttpClient.execute(httpget, mHttpContext);
             if(httpResponse.getStatusLine().getStatusCode() == SC_OK ) {
                 BufferedReader reader = new BufferedReader(new InputStreamReader(httpResponse.getEntity().getContent(), "UTF-8"));
                 response.status = SC_OK;
                 response.data = reader.readLine();
-                //Log.v("Http", "livedata : " + content);
                 httpResponse.getEntity().consumeContent();
             }
             else  {
@@ -164,8 +167,8 @@ public class Http {
 	public HttpData vtsLogin(String username, String password, URI uri) {
         HttpData response = new HttpData();
         // Perform action on click
-    	Log.v("Http", "loginButton Clicked");
-    	//httpclient.getParams().setParameter(ConnRoutePNames.DEFAULT_PROXY, PROXY_HOST);
+    	Log.v("Http", "vtsLogin url : " + uri + " user name :  " + username);
+
         
     	if(userLogin == true) {
     		Log.v("Http", "user already logged in");
@@ -173,8 +176,7 @@ public class Http {
     		return response;
     	}
 
-        HttpPost httppost = new HttpPost(uri);
-
+        HttpPost httppost = new HttpPost(uri.toString());
         try {
             // Add your data
             List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>(2);
@@ -186,20 +188,23 @@ public class Http {
             nameValuePairs.add(new BasicNameValuePair("p", password));
             httppost.setEntity(new UrlEncodedFormEntity(nameValuePairs));
 
-            Log.v("Http ", "httpclient execute post ");
-            httpClient.getParams().setParameter(ClientPNames.ALLOW_CIRCULAR_REDIRECTS, true);
+            Log.v("Http ", "mHttpClient execute post ");
+            mHttpClient.getParams().setParameter(ClientPNames.ALLOW_CIRCULAR_REDIRECTS, true);
             // Execute HTTP Post Request
-            HttpResponse httpResponse = httpClient.execute(httppost, localContext);
+
+            HttpResponse httpResponse = mHttpClient.execute(httppost, mHttpContext);
+
             int status = httpResponse.getStatusLine().getStatusCode();
             if(status == 200) {
             	userLogin = true;
                 response.status = SC_OK;
                 response.data = "";
-            } else {
 
+            } else {
+                //FIXME : handle error case here
             }
             httpResponse.getEntity().consumeContent();
-            Log.v("Http ", "Http status : ");
+            Log.v("Http ", "Http status : " + status);
 
         } catch (ClientProtocolException e) {
             // TODO Auto-generated catch block
@@ -218,8 +223,4 @@ public class Http {
 		return response;
 		
 	}
-
-
-
-
 }
