@@ -99,6 +99,7 @@ public class MapActivity extends Activity
         GooglePlayServicesClient.OnConnectionFailedListener,
         LocationListener {
 
+    private static final String TAG = "MapActivity";
     /**
      * Fragment managing the behaviors, interactions and presentation of the navigation drawer.
      */
@@ -340,10 +341,12 @@ public class MapActivity extends Activity
 
     @Override
     public void onLocationChanged(Location location) {
-        mCurrentLocation = mLocationClient.getLastLocation();
-        mDeviceLocation = new LatLng(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude());
-        Toast.makeText(this, "Location changed. " + mDeviceLocation.toString() , Toast.LENGTH_SHORT).show();
-        updateDevicePositionOnMap();
+        if(mLocationClient.isConnected()) {
+            mCurrentLocation = mLocationClient.getLastLocation();
+            mDeviceLocation = new LatLng(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude());
+            Toast.makeText(this, "Location changed. " + mDeviceLocation.toString(), Toast.LENGTH_SHORT).show();
+            updateDevicePositionOnMap();
+        }
     }
 
     /**
@@ -536,7 +539,7 @@ public class MapActivity extends Activity
                             VehicleData vd = LiveVehicleData.getInstance().getVehicleDataFor(myVehicle);
                             if(vd != null) {
                                 Toast.makeText(MapActivity.this,
-                                        "get Live data :  " + vd.deviceName + " time : " + vd.positionData[0].time + " position : " + vd.positionData[0].lat + " " + vd.positionData[0].lng,
+                                        "get Live data :  " + vd.deviceName,
                                         Toast.LENGTH_LONG).show();
 
                                 updateVehiclePositionOnMap(vd);
@@ -629,6 +632,11 @@ public class MapActivity extends Activity
     }
     private void updateVehiclePositionOnMap(VehicleData vd) {
         if(mMap == null) return;
+
+        if(vd.positionData.length < 1) {
+            Log.v(TAG, "updateVehiclePositionOnMap no position data for this device ");
+            return; //FIXME : no position data !
+        }
 
         if(vd.positionData[0].lat == 0 || vd.positionData[0].lng == 0) {
             mVehicleLocation = new LatLng(vd.positionData[1].lat, vd.positionData[1].lng);//FIXME : not tested

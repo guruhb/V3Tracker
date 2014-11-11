@@ -10,6 +10,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
+import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
@@ -25,6 +26,7 @@ import com.vts.vtsUtils.VehicleData;
  */
 public class VehicleListSelectFragment extends DialogFragment implements AdapterView.OnItemClickListener {
 
+    private static final String TAG="VehicleListSelectFragment";
     private String[] mVehicleListItems;
 
     ListView mListView;
@@ -36,6 +38,17 @@ public class VehicleListSelectFragment extends DialogFragment implements Adapter
         View view = inflater.inflate(R.layout.vehicleselectfragment, null, false);
         mListView = (ListView) view.findViewById(R.id.vehicle_select_list);
         getDialog().getWindow().requestFeature(Window.FEATURE_NO_TITLE);
+
+        mListView.setChoiceMode(AbsListView.CHOICE_MODE_MULTIPLE);
+
+        if(mListView != null) {
+            mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                @Override
+                public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                    Log.v(TAG, "onItemClick position : " + position + " id : " + id);
+                }
+            });
+        }
         return view;
     }
 
@@ -58,8 +71,7 @@ public class VehicleListSelectFragment extends DialogFragment implements Adapter
             }
         }
 
-
-        ArrayAdapter<String> adapter = new ArrayAdapter<String>(getActivity(), android.R.layout.simple_list_item_1, mVehicleListItems);
+        ArrayAdapter<String> adapter = new ArrayAdapter<String>(getActivity(), android.R.layout.simple_list_item_multiple_choice, mVehicleListItems);
         mListView.setAdapter(adapter);
         mListView.setOnItemClickListener(this);
 
@@ -67,7 +79,7 @@ public class VehicleListSelectFragment extends DialogFragment implements Adapter
 
     @Override
     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-        Log.v("VehicleListSelectFragment", "onItemClick() position : " + mVehicleListItems[position]);
+        Log.v(TAG, "onItemClick() position : " + mVehicleListItems[position]);
         setSelectedVehicle(mVehicleListItems[position]);
         dismiss();
     }
@@ -79,7 +91,7 @@ public class VehicleListSelectFragment extends DialogFragment implements Adapter
         //remove the offset before storing
         myPrefEdit.putString(getActivity().getString(R.string.key_my_vehicle), vehicalNum);
         if(!myPrefEdit.commit()) {
-            Log.v("MyActivity", "setSelectedVehicle failed" + vehicalNum);
+            Log.v(TAG, "setSelectedVehicle failed" + vehicalNum);
             return false;
         }
         return true;
