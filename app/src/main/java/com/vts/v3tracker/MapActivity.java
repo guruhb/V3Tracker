@@ -6,7 +6,6 @@ import android.app.Dialog;
 
 import android.app.Fragment;
 import android.app.FragmentManager;
-import android.app.FragmentTransaction;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -15,20 +14,11 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
-import android.content.res.Resources;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.Paint;
-import android.graphics.Rect;
-import android.graphics.Typeface;
-import android.location.Location;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.support.v4.widget.DrawerLayout;
-import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.InflateException;
 import android.view.LayoutInflater;
@@ -41,53 +31,22 @@ import android.widget.ListView;
 import android.widget.SeekBar;
 import android.widget.Toast;
 
-import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.GooglePlayServicesClient;
-import com.google.android.gms.location.LocationClient;
-import com.google.android.gms.location.LocationListener;
-import com.google.android.gms.location.LocationRequest;
-import com.google.android.gms.maps.CameraUpdate;
-import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
-import com.google.android.gms.maps.SupportMapFragment;
-import android.provider.Settings;
 
-import android.util.Log;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
-
-import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.PolylineOptions;
-import com.vts.vtsUtils.Http;
-import com.vts.vtsUtils.LiveVehicleData;
 import com.vts.vtsUtils.RouteJSONParser;
-import com.vts.vtsUtils.Vehicle;
-import com.vts.vtsUtils.VehicleData;
 import com.vts.vtsUtils.VehicleListAdaptor;
 import com.vts.vtsUtils.VtsIntentService;
 import com.vts.vtsUtils.VtsService;
-import com.google.android.gms.maps.model.BitmapDescriptorFactory;
-import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.LatLngBounds;
-import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 import org.json.JSONObject;
 
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
-import java.util.TimeZone;
-import java.util.Timer;
-import java.util.TimerTask;
-
-import com.vts.vtsUtils.LocationUpdate;
 
 
 /**
@@ -95,9 +54,9 @@ import com.vts.vtsUtils.LocationUpdate;
  */
 public class MapActivity extends Activity
         implements NavigationDrawerFragment.NavigationDrawerCallbacks,
-        GooglePlayServicesClient.ConnectionCallbacks,
-        GooglePlayServicesClient.OnConnectionFailedListener,
-        LocationListener {
+        VehicleListSelectFragment.PreferenceUpdate
+
+         {
 
     private static final String TAG = "MapActivity";
     /**
@@ -109,8 +68,6 @@ public class MapActivity extends Activity
      * Used to store the last screen title. For use in {@link #restoreActionBar()}.
      */
     private CharSequence mTitle;
-
-
     private String allVehicleData = "";
     private JSONObject allVehicleDataJsonData;
 
@@ -119,20 +76,15 @@ public class MapActivity extends Activity
     private static final String TAG_NUMBER = "deviceName";
 
     ListView customerListView;
-    ArrayList<Vehicle> arrayList = new ArrayList<Vehicle>();
+
     VehicleListAdaptor adaptor;
     private boolean loadingMore = false;
     Handler handler = new Handler();
     private Handler mPeriodicUpdateHandler;
 
-    LocationClient mLocationClient;
-    Location mCurrentLocation;
-    LocationRequest mLocationRequest;
-    LatLng mDeviceLocation;
-    LatLng mVehicleLocation;
-    private Marker mVehicleMarker;
-    private Marker mCurrentLocationMarker;
     private GoogleMap mMap;
+    private MapViewHelper mMapViewHelper;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -151,22 +103,13 @@ public class MapActivity extends Activity
         //set up periodic handler
         mPeriodicUpdateHandler = new Handler();
 
-        mLocationClient = new LocationClient(this, this, this);
-
-        mLocationRequest = LocationRequest.create();
-        mLocationRequest.setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY);
-
-        mLocationRequest.setInterval(1000 * 10);
-
-        mLocationRequest.setFastestInterval(5000 * 1);
-        mDeviceLocation = new LatLng(13.064838, 77.583793);
-
         mMap = ((MapFragment) getFragmentManager().findFragmentById(R.id.map)).getMap();
-        if(mMap != null) {
+        if(mMap == null) {
             Log.v("MapActivity", "Map Fragment failed to inflate");
         }
+        mMapViewHelper = new MapViewHelper(this, mMap);
 
-        /*Button button = new Button(this);
+        Button button = new Button(this);
         button.setText("Click me");
         addContentView(button, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));*/
 
@@ -176,15 +119,17 @@ public class MapActivity extends Activity
     @Override
     protected void onResume() {
         super.onResume();
-        registerReceiver(intentReceiver, new IntentFilter(VtsIntentService.VTSINTENTSERVICERESPONSE));
+        registerReceiver(intentReceiver, new IntentFilter(VtsIntentService.VTS_INTENT_SERVICE_RESPONSE));
         startPeriodicTimer();
-    }
+        mMapViewHelper.onResume();
+   }
 
     @Override
     protected void onPause() {
         super.onPause();
         stopPeriodicTimer();
         unregisterReceiver(intentReceiver);
+        mMapViewHelper.onPause();
     }
 
 
@@ -206,7 +151,8 @@ public class MapActivity extends Activity
             break;
             case 1 : { //calculate route and plot route map
                 //SERVICE_CALCULATE_ROUTE
-                if(!(mCurrentLocation != null && mVehicleLocation != null )) {
+               /*
+               if(!(mCurrentLocation != null && mVehicleLocation != null )) {
                     Toast.makeText(this, "Current and Vehicle location unknown" + mDeviceLocation.toString() , Toast.LENGTH_SHORT).show();
                     return;
                 }
@@ -218,7 +164,7 @@ public class MapActivity extends Activity
                 bundle.putDoubleArray("dst", new double[] {mVehicleLocation.latitude, mVehicleLocation.longitude});
                 i.putExtra("location", bundle);
                 // add info for the service which file to download and where to store
-                startService(i);
+                startService(i);*/
             }
             break;
             default : {
@@ -293,6 +239,7 @@ public class MapActivity extends Activity
             case R.id.setting_vehicle : {
                 FragmentManager mgr = getFragmentManager();
                 VehicleListSelectFragment dlg = new VehicleListSelectFragment();
+                dlg.setPreferenceChange(this);
                 dlg.show(mgr, "VehicleSelectListFragment");
                 return true;
             }
@@ -310,46 +257,13 @@ public class MapActivity extends Activity
 
 
     @Override
-    public void onConnected(Bundle bundle) {
-        if(mLocationClient != null)
-            mLocationClient.requestLocationUpdates(mLocationRequest, this);
-        Toast.makeText(this, "Connected", Toast.LENGTH_SHORT).show();
-
-        if(mLocationClient != null) {
-            mCurrentLocation = mLocationClient.getLastLocation();
-            try {
-                mDeviceLocation = new LatLng(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude());
-                updateDevicePositionOnMap();
-            } catch (NullPointerException e) {
-                Toast.makeText(this, "Failed to Connect Location service", Toast.LENGTH_SHORT).show();
-                // switch on location service intent
-                Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
-                startActivity(intent);
-            }
-        }
+    public void onPreferenceChanged() {
+         Log.v(TAG, "onPreferenceChanged()");
+         mMapViewHelper.getMyPreferedVehicles(true);
     }
 
-    @Override
-    public void onDisconnected() {
-        Toast.makeText(this, "Disconnected.", Toast.LENGTH_SHORT).show();
-    }
 
-    @Override
-    public void onConnectionFailed(ConnectionResult connectionResult) {
-        Toast.makeText(this, "Connection Failed ... ", Toast.LENGTH_SHORT).show();
-    }
-
-    @Override
-    public void onLocationChanged(Location location) {
-        if(mLocationClient.isConnected()) {
-            mCurrentLocation = mLocationClient.getLastLocation();
-            mDeviceLocation = new LatLng(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude());
-            Toast.makeText(this, "Location changed. " + mDeviceLocation.toString(), Toast.LENGTH_SHORT).show();
-            updateDevicePositionOnMap();
-        }
-    }
-
-    /**
+             /**
      * A placeholder fragment for replacing container with other view.
      */
     public static class PlaceholderFragment extends Fragment {
@@ -460,7 +374,6 @@ public class MapActivity extends Activity
             });
 
         }
-
         localFreqDialog.show();
     }
 
@@ -474,7 +387,7 @@ public class MapActivity extends Activity
         //Bind to VtsService
         Intent intent = new Intent(this, VtsService.class);
         bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
-        mLocationClient.connect();
+        mMapViewHelper.onStart();
     }
 
     @Override
@@ -483,7 +396,7 @@ public class MapActivity extends Activity
         if(mHttpBound) {
             unbindService(mConnection);
         }
-        mLocationClient.disconnect();
+        mMapViewHelper.onStop();
     }
 
 
@@ -523,18 +436,19 @@ public class MapActivity extends Activity
 
                         if(bundle.getBoolean(VtsIntentService.SERVICE_RESPONSE)) {
                             Intent i = new Intent(MapActivity.this, VtsIntentService.class);
-                            i.putExtra(VtsIntentService.SERVICE_TYPE, VtsIntentService.ServiceType.SERVICE_GETLIVEDATA);
+                            i.putExtra(VtsIntentService.SERVICE_TYPE, VtsIntentService.ServiceType.SERVICE_GET_LIVE_DATA);
                             // add infos for the service which file to download and where to store
                             startService(i);
                             Log.v("MapActivity", "Http get live data Request started");
                         }
                     }
                     break;
-                    case SERVICE_GETLIVEDATA :
+                    case SERVICE_GET_LIVE_DATA :
                     {
                         String status = bundle.getBoolean(VtsIntentService.SERVICE_RESPONSE) ? "true" : "false";
                         if(status == "true") {
-                            SharedPreferences myPref = getSharedPreferences(getString(R.string.preference_file), Context.MODE_PRIVATE);
+                            mMapViewHelper.updateVehiclesOnMap(false);
+                           /* SharedPreferences myPref = getSharedPreferences(getString(R.string.preference_file), Context.MODE_PRIVATE);
                             String myVehicle = myPref.getString(getString(R.string.key_my_vehicle), "");
                             VehicleData vd = LiveVehicleData.getInstance().getVehicleDataFor(myVehicle);
                             if(vd != null) {
@@ -542,9 +456,9 @@ public class MapActivity extends Activity
                                         "get Live data :  " + vd.deviceName,
                                         Toast.LENGTH_LONG).show();
 
-                                updateVehiclePositionOnMap(vd);
+                                mMapViewHelper.updateVehiclePositionOnMap(vd);
 
-                            }
+                            }*/
                         }
                         Log.v("MapActivity", "Http service getlivedata status : " + status);
                     }
@@ -618,68 +532,12 @@ public class MapActivity extends Activity
 
         }
     };
-    private void updateDevicePositionOnMap() {
-        if(mMap == null) return;
 
-        if(mCurrentLocationMarker == null) {
-            mCurrentLocationMarker = mMap.addMarker(new MarkerOptions()
-                    .position(mDeviceLocation)
-                    .icon(BitmapDescriptorFactory.defaultMarker()));
-        } else {
-            mCurrentLocationMarker.setPosition(mDeviceLocation);
-        }
-        boundVehicleAndDevicePositionOnMap();
-    }
-    private void updateVehiclePositionOnMap(VehicleData vd) {
-        if(mMap == null) return;
-
-        if(vd.positionData.length < 1) {
-            Log.v(TAG, "updateVehiclePositionOnMap no position data for this device ");
-            return; //FIXME : no position data !
-        }
-
-        if(vd.positionData[0].lat == 0 || vd.positionData[0].lng == 0) {
-            mVehicleLocation = new LatLng(vd.positionData[1].lat, vd.positionData[1].lng);//FIXME : not tested
-        }else {
-            mVehicleLocation = new LatLng(vd.positionData[0].lat, vd.positionData[0].lng);
-        }
-
-        if(mVehicleMarker == null) {
-            mVehicleMarker = mMap.addMarker(new MarkerOptions()
-                    .position(mVehicleLocation)
-                    .icon(BitmapDescriptorFactory.fromBitmap(writeTextOnDrawable(R.drawable.schoolbus, "Vehicle number, time, etc"))));
-        }
-        else {
-            mVehicleMarker.setPosition(mVehicleLocation);
-        }
-        boundVehicleAndDevicePositionOnMap();
-
-    }
-
-    private void boundVehicleAndDevicePositionOnMap() {
-        if(mDeviceLocation != null && mVehicleLocation != null) {
-            try {
-                LatLngBounds.Builder builder = new LatLngBounds.Builder();
-
-                builder.include(mDeviceLocation);
-                builder.include(mVehicleLocation);
-                LatLngBounds bounds = builder.build();
-
-                int padding = 100; // offset from edges of the map in pixels FIXME : make this literal instead of hard coded value
-                CameraUpdate cu = CameraUpdateFactory.newLatLngBounds(bounds, padding);
-                mMap.moveCamera(cu);
-
-            } catch (IllegalStateException e) {
-                Log.v("MAPS", "Move camera excpetion");
-            }
-        }
-
-    }
     private void getLivedataAndGPS() {
         Log.i("MapActivity", "getLiveDataAndGPS -->");
 
         Intent i = new Intent(MapActivity.this, VtsIntentService.class);
-        i.putExtra(VtsIntentService.SERVICE_TYPE, VtsIntentService.ServiceType.SERVICE_GETLIVEDATA);
+        i.putExtra(VtsIntentService.SERVICE_TYPE, VtsIntentService.ServiceType.SERVICE_GET_LIVE_DATA);
         // add infos for the service which file to download and where to store
         startService(i);
     }
@@ -705,45 +563,5 @@ public class MapActivity extends Activity
             mPeriodicUpdateHandler.postDelayed(mPeriodicStatus, locupdatetime);
         }
     };
-    public static float convertToPixels(Context context, int dp){
-        Resources resources = context.getResources();
-        DisplayMetrics metrics = resources.getDisplayMetrics();
-        float px = dp * (metrics.densityDpi / 160f);
-        return px;
-    }
-
-    private Bitmap writeTextOnDrawable(int drawableId, String text) {
-
-        Bitmap bm = BitmapFactory.decodeResource(getResources(), drawableId)
-                .copy(Bitmap.Config.ARGB_8888, true);
-
-        Typeface tf = Typeface.create("Helvetica", Typeface.BOLD);
-
-        Paint paint = new Paint();
-        paint.setStyle(Paint.Style.FILL);
-        paint.setColor(Color.WHITE);
-        paint.setTypeface(tf);
-        paint.setTextAlign(Paint.Align.CENTER);
-        paint.setTextSize(convertToPixels(getApplicationContext(), 11));
-
-        Rect textRect = new Rect();
-        paint.getTextBounds(text, 0, text.length(), textRect);
-
-        Canvas canvas = new Canvas(bm);
-
-        //If the text is bigger than the canvas , reduce the font size
-        if(textRect.width() >= (canvas.getWidth() - 4))     //the padding on either sides is considered as 4, so as to appropriately fit in the text
-            paint.setTextSize(convertToPixels(getApplicationContext(), 7));        //Scaling needs to be used for different dpi's
-
-        //Calculate the positions
-        int xPos = (canvas.getWidth() / 2) - 2;     //-2 is for regulating the x position offset
-
-        //"- ((paint.descent() + paint.ascent()) / 2)" is the distance from the baseline to the center.
-        int yPos = (int) ((canvas.getHeight() / 2) - ((paint.descent() + paint.ascent()) / 2)) ;
-
-        canvas.drawText(text, xPos, yPos, paint);
-
-        return  bm;
-    }
 
 }

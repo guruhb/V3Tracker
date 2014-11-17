@@ -27,18 +27,18 @@ public class VtsIntentService extends IntentService {
 		// TODO Auto-generated constructor stub
 	}
 
-	public static final String VTSINTENTSERVICERESPONSE = "com.vts.vtsUtils.result";
+	public static final String VTS_INTENT_SERVICE_RESPONSE = "com.vts.vtsUtils.result";
 
-	public static final String INTENT_ACTION = "VtsINTENT_ACTION";
+	public static final String INTENT_ACTION = "VTS_INTENT_ACTION";
 	public static final int INTENT_NOT_SPECIFIED = 0; 
 	public static final int HTTP_USER_LOGIN = 1; 
 
 	public static final String SERVICE_TYPE = "SERVICE_TYPE";
-	public static final String SERVICE_RESPONSE = "SERVICE_RESPOSE";
+	public static final String SERVICE_RESPONSE = "SERVICE_RESPONSE";
 
 	private static final String SERVICE_NONE = "SERVICE_NONE";
 
-    public enum ServiceType {SERVICE_LOGIN, SERVICE_GETLIVEDATA, SERVICE_CALCULATE_ROUTE, SERVICE_NONE};
+    public enum ServiceType {SERVICE_LOGIN, SERVICE_GET_LIVE_DATA, SERVICE_CALCULATE_ROUTE, SERVICE_NONE};
 	
 	
 	public VtsIntentService() {
@@ -50,7 +50,7 @@ public class VtsIntentService extends IntentService {
 	protected void onHandleIntent(Intent intent) {
 		
 		ServiceType servicetype = (ServiceType) intent.getSerializableExtra(SERVICE_TYPE); 
-		Intent i = new Intent(VTSINTENTSERVICERESPONSE);
+		Intent i = new Intent(VTS_INTENT_SERVICE_RESPONSE);
 		i.putExtra(SERVICE_TYPE, servicetype);
 
 		Bundle req = intent.getExtras();
@@ -90,7 +90,7 @@ public class VtsIntentService extends IntentService {
                         sendBroadcast(i);
                     }
 				break;
-			case SERVICE_GETLIVEDATA : 
+			case SERVICE_GET_LIVE_DATA :
 				{
                     URL url = null;
 
@@ -141,19 +141,12 @@ public class VtsIntentService extends IntentService {
                                 Log.v("VtsIntentService", "JSONexception ");
                                 i.putExtra(SERVICE_RESPONSE, false);
                             }
-
-
                         }
                     }
                     sendBroadcast(i);
                 }
             break;
 			}
-
 		}
-
 	}
-
-
-
 }

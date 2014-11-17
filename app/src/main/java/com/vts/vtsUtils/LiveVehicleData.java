@@ -24,6 +24,7 @@ public class LiveVehicleData {
 	protected LiveVehicleData() { //cTor protected 
 		
 	}
+
 	private static LiveVehicleData instance = null;
 	
 	public static LiveVehicleData getInstance() {

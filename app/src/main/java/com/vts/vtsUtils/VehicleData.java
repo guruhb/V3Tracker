@@ -44,7 +44,7 @@ public class VehicleData {
 	public int maxSpeed;
 	public String deviceId;
 	public PositionData[] positionData;
-	
+	public boolean selected;
 	VehicleData(String type, String deviceName, String drivername, int maxSpeed, String deviceId, PositionData[] p) {
 		this.type = type;
 		this.deviceName = deviceName;
@@ -52,5 +52,6 @@ public class VehicleData {
 		this.maxSpeed = maxSpeed;
 		this.deviceId = deviceId;
 		this.positionData = p;
+        this.selected = false;
 	}
 };
